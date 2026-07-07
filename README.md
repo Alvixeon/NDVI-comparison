@@ -1,7 +1,10 @@
 Basic demonstration of applied concepts regarding differences between two landsat sets.
-
+Capable of reading the MTL file and switching between level 1 and level 2 calculations. 
+Tested on L1,L2 sat8/9
 ## Data
-This project uses Landsat 8 Collections 2 Level-2 imagery, downloaded from 
+The project example imagery included is Landsat 8 L2 data.
+
+downloaded from 
 [USGS EarthExplorer](https://earthexplorer.usgs.gov/). 
 Scene IDs used:
 - LC08_L2SP_026029_20260524_20260603_02_T1
