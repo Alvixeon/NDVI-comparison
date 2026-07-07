@@ -1,9 +1,11 @@
 import rasterio
 import numpy as np
 import matplotlib.pyplot as plt
-from rasterio.warp import calculate_default_transform, reproject, Resampling
-from enum import Enum
+from rasterio.warp import reproject, Resampling
 
+def get_raster_profile(path):
+    with rasterio.open(path) as src:
+        return src.profile
 # Parse the MTL file to remove the specific variables we need as floats
 def parse_mtl(mtl_path):
     coeffs = {}
@@ -14,7 +16,6 @@ def parse_mtl(mtl_path):
                 "SUN_ELEVATION" in line or
                 "PROCESSING_LEVEL" in line):
                 key, val = line.strip().split(" = ")
-                # Implemented for automatic level acquisition
                 try:
                     coeffs[key] = float(val)
                 except ValueError:
@@ -121,12 +122,24 @@ axes[1].axis('off')
 fig.colorbar(im1, ax=axes[1], fraction=0.046, pad=0.04)
 
 plt.tight_layout()
-plt.savefig("ndvi_sbs.png", dpi=300)
-plt.show()
+#plt.savefig("ndvi_sbs.png", dpi=300)
+#plt.show()
 
 plt.figure(figsize=(10, 8))
 im = plt.imshow(ndvi_compare, cmap="RdYlGn", vmin=ndviVmin, vmax=ndviVmax)
 cbar = plt.colorbar(im, fraction=0.03, pad=0.04)
 plt.title("NDVI")
-plt.savefig("ndvi_compare.png", dpi=300)
+#plt.savefig("ndvi_compare.png", dpi=300)
 
+profile = get_raster_profile(RP1)
+
+profile.update(
+    dtype="float32",
+    count=1,
+    nodata=np.nan,
+    compress="deflate"
+)
+
+#create an accompanying ndvi.tif file for further analysis or modification.
+with rasterio.open("ndvi_compare.tif", "w", **profile) as f:
+    f.write(ndvi_compare.astype("float32"), 1)
