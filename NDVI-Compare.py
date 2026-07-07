@@ -2,18 +2,24 @@ import rasterio
 import numpy as np
 import matplotlib.pyplot as plt
 from rasterio.warp import calculate_default_transform, reproject, Resampling
-from mpl_toolkits.axes_grid1 import make_axes_locatable
+from enum import Enum
 
-# Parse the MTL file to remove the specific variables we need, in this case reflectance
+# Parse the MTL file to remove the specific variables we need as floats
 def parse_mtl(mtl_path):
     coeffs = {}
     with open(mtl_path) as f:
         for line in f:
             if ("REFLECTANCE_MULT_BAND" in line or
                 "REFLECTANCE_ADD_BAND" in line or
-                "SUN_ELEVATION" in line):
+                "SUN_ELEVATION" in line or
+                "PROCESSING_LEVEL" in line):
                 key, val = line.strip().split(" = ")
-                coeffs[key] = float(val)
+                # Implemented for automatic level acquisition
+                try:
+                    coeffs[key] = float(val)
+                except ValueError:
+                    coeffs[key] = val.strip('"')
+
     return coeffs
 
 # Function to align imagery.
@@ -44,6 +50,9 @@ def align_to_reference(src_path,ref_path):
 
 def compute_ndvi(red_path, nir_path, mtl_path, ref_path = None):
     mtl = parse_mtl(mtl_path)
+
+    SE = mtl["SUN_ELEVATION"]
+    level = mtl["PROCESSING_LEVEL"]
     M4, A4 = mtl["REFLECTANCE_MULT_BAND_4"], mtl["REFLECTANCE_ADD_BAND_4"]
     M5, A5 = mtl["REFLECTANCE_MULT_BAND_5"], mtl["REFLECTANCE_ADD_BAND_5"]
 
@@ -57,8 +66,14 @@ def compute_ndvi(red_path, nir_path, mtl_path, ref_path = None):
             nir_dn = src.read(1).astype(np.float32)
 
     nodata_mask = (red_dn == 0) | (nir_dn == 0)
-    red = M4 * red_dn + A4
-    nir = M5 * nir_dn + A5
+
+    # If the images come from level one, apply the corrected toa reflectance formula
+    if level == "L1TP":
+        red = (M4 * red_dn + A4) / np.sin(np.deg2rad(SE))
+        nir = (M5 * nir_dn + A5) / np.sin(np.deg2rad(SE))
+    elif level == "L2SP":
+        red = red_dn * 2.75e-5 - 0.2
+        nir = nir_dn * 2.75e-5 - 0.2
 
     red[nodata_mask] = np.nan
     nir[nodata_mask] = np.nan
@@ -69,14 +84,14 @@ def compute_ndvi(red_path, nir_path, mtl_path, ref_path = None):
         where=(nir + red) !=0
     )
 # RP1 holds the newer LANDSAT imagery
-RP1 = "./SET1/LC08_L2SP_026029_20260524_20260603_02_T1_SR_B4.TIF"
-NIR1 = "./SET1/LC08_L2SP_026029_20260524_20260603_02_T1_SR_B5.TIF"
-mtlPath1 = "./SET1/LC08_L2SP_026029_20260524_20260603_02_T1_MTL.txt"
+RP1 = "./SET1/LC08_L2SP_025029_20260618_20260627_02_T1_SR_B4.TIF"
+NIR1 = "./SET1/LC08_L2SP_025029_20260618_20260627_02_T1_SR_B5.TIF"
+mtlPath1 = "./SET1/LC08_L2SP_025029_20260618_20260627_02_T1_MTL.txt"
 
 # RP2 holds the older LANDSAT imagery
-RP2 = "./SET2/LC08_L2SP_026029_20250708_20250715_02_T1_SR_B4.TIF"
-NIR2 = "./SET2/LC08_L2SP_026029_20250708_20250715_02_T1_SR_B5.TIF"
-mtlPath2 = "./SET2/LC08_L2SP_026029_20250708_20250715_02_T1_MTL.txt"
+RP2 = "./SET2/LC08_L2SP_025029_20260602_20260612_02_T1_SR_B4.TIF"
+NIR2 = "./SET2/LC08_L2SP_025029_20260602_20260612_02_T1_SR_B5.TIF"
+mtlPath2 = "./SET2/LC08_L2SP_025029_20260602_20260612_02_T1_MTL.txt"
 
 ndvi_new = compute_ndvi(RP1, NIR1, mtlPath1)
 ndvi_old = compute_ndvi(RP2, NIR2, mtlPath2, ref_path=RP1)
