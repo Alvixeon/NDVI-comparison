@@ -122,14 +122,14 @@ axes[1].axis('off')
 fig.colorbar(im1, ax=axes[1], fraction=0.046, pad=0.04)
 
 plt.tight_layout()
-#plt.savefig("ndvi_sbs.png", dpi=300)
-#plt.show()
+plt.savefig("ndvi_sbs.png", dpi=300)
+plt.show()
 
 plt.figure(figsize=(10, 8))
 im = plt.imshow(ndvi_compare, cmap="RdYlGn", vmin=ndviVmin, vmax=ndviVmax)
 cbar = plt.colorbar(im, fraction=0.03, pad=0.04)
 plt.title("NDVI")
-#plt.savefig("ndvi_compare.png", dpi=300)
+plt.savefig("ndvi_compare.png", dpi=300)
 
 profile = get_raster_profile(RP1)
 
