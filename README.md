@@ -1,6 +1,7 @@
 Basic demonstration of applied concepts regarding differences between two landsat sets.
-Capable of reading the MTL file and switching between level 1 and level 2 calculations. 
-Tested on L1,L2 sat8/9
+This script supports both LS1 Level-1 (TOA reflectance with sun-elevation correction) 
+As well as LS2 (surface reflectance) products, and has been validated against Landsat 8 and Landsat 9 imagery.
+
 ## Data
 The project example imagery included is Landsat 8 L2 data.
 
