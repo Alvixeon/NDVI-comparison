@@ -51,11 +51,8 @@ def align_to_reference(src_path,ref_path):
 
 def compute_ndvi(red_path, nir_path, mtl_path, ref_path = None):
     mtl = parse_mtl(mtl_path)
-
     SE = mtl["SUN_ELEVATION"]
     level = mtl["PROCESSING_LEVEL"]
-    M4, A4 = mtl["REFLECTANCE_MULT_BAND_4"], mtl["REFLECTANCE_ADD_BAND_4"]
-    M5, A5 = mtl["REFLECTANCE_MULT_BAND_5"], mtl["REFLECTANCE_ADD_BAND_5"]
 
     if ref_path:
         red_dn = align_to_reference(red_path, ref_path)
@@ -69,10 +66,13 @@ def compute_ndvi(red_path, nir_path, mtl_path, ref_path = None):
     nodata_mask = (red_dn == 0) | (nir_dn == 0)
 
     # If the images come from level one, apply the corrected toa reflectance formula
-    if level == "L1TP":
+    if "L1" in level:
+        M4, A4 = mtl["REFLECTANCE_MULT_BAND_4"], mtl["REFLECTANCE_ADD_BAND_4"]
+        M5, A5 = mtl["REFLECTANCE_MULT_BAND_5"], mtl["REFLECTANCE_ADD_BAND_5"]
         red = (M4 * red_dn + A4) / np.sin(np.deg2rad(SE))
         nir = (M5 * nir_dn + A5) / np.sin(np.deg2rad(SE))
-    elif level == "L2SP":
+    elif "L2" in level:
+        # Landsat L2 scaling factor
         red = red_dn * 2.75e-5 - 0.2
         nir = nir_dn * 2.75e-5 - 0.2
 
